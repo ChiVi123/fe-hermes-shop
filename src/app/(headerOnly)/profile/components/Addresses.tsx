@@ -5,10 +5,11 @@ import { Alert, AlertTitle } from '~/components/ui/alert';
 import { Button } from '~/components/ui/button';
 import { useFetch } from '~/hooks/fetch';
 import { isFetchError } from '~/lib/fetchClient';
-import { getAllAddressFromNextServer } from '~/services/users';
+import { getAllAddressClientApi, getMeExternalApi } from '~/services/users';
 
 export default function Addresses() {
-  const result = useFetch(getAllAddressFromNextServer, []);
+  const result = useFetch(getAllAddressClientApi, []);
+  const user = useFetch(getMeExternalApi, null);
 
   return (
     <div className='mx-7 p-5 bg-accent rounded-2xl space-y-2'>
@@ -16,7 +17,7 @@ export default function Addresses() {
         <div className='text-2xl font-semibold'>Addresses</div>
         <Button variant='ghost' className='font-bold'>
           <PlusIcon />
-          Add
+          Add for {isFetchError(user) || user?.email}
         </Button>
       </div>
 

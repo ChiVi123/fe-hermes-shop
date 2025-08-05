@@ -46,3 +46,5 @@ bash.exe.stackdump
 
 *.local.md
 *.mock.*
+
+/assets

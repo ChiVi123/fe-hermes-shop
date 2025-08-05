@@ -7,3 +7,4 @@ export enum RoutePath {
 }
 
 export const getVerifyEmailPath = (id: string) => `/verify/${id}`;
+export const getLoginRedirectFrom = (pathname: string) => `${RoutePath.Login}?redirectFrom=${pathname}`;

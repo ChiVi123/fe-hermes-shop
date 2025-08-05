@@ -7,7 +7,7 @@ import { cookieOptions, TokenName } from '~/constants';
 import { isFetchError } from '~/lib/fetchClient';
 import { isString } from '~/lib/fetchClient/utils';
 import { apiRequest } from '~/lib/requests';
-import { getVerifyEmailPath, RoutePath } from '~/lib/route';
+import { getVerifyEmailPath } from '~/lib/route';
 import {
   createServerInvalidResponse,
   createZodResponse,
@@ -23,7 +23,7 @@ type LoginValues = z.infer<typeof loginFormSchema>;
 type LoginReturnType = Promise<
   {
     errors?: ReturnType<typeof z.flattenError>['fieldErrors'];
-    success?: true;
+    accessToken?: string;
     message: string;
   } & Partial<LoginValues>
 >;
@@ -55,7 +55,7 @@ export async function loginAction(_: unknown, formData: FormData): LoginReturnTy
   cookieStore.set(TokenName.ACCESS_TOKEN, result.accessToken, cookieOptions);
   cookieStore.set(TokenName.REFRESH_TOKEN, result.refreshToken, cookieOptions);
 
-  redirect(RoutePath.Profile);
+  return { errors: undefined, message: 'Login successfully', accessToken: result.accessToken, ...obj };
 }
 type RegisterValues = z.infer<typeof registerFormSchema>;
 type RegisterReturnType = Promise<

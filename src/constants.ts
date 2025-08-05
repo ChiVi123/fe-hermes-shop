@@ -2,6 +2,8 @@ import ms from 'ms';
 import { ResponseCookie } from 'next/dist/compiled/@edge-runtime/cookies';
 
 export const FALLBACK_IMAGE_URL = '/images/fallback.png';
+export const FALLBACK_AVATAR_URL = '/images/avatar-default.png';
+
 export const OBJECT_ID_RULE = /^[0-9a-fA-F]{24}$/;
 export const OBJECT_ID_RULE_MESSAGE = 'Your string fails to match the Object Id pattern!';
 export const EMAIL_RULE_MESSAGE = 'Email is invalid. (example@gmail.com)';

@@ -1,17 +1,10 @@
 import { isFetchError } from '~/lib/fetchClient';
-import { getMeFromServer } from '~/services/users';
+import { getMeServerApi } from '~/services/users';
 import Addresses from './components/Addresses';
 import EditProfileForm from './components/EditProfileForm';
 
 export default async function ProfilePage() {
-  // const cookieHeader = await getCookiesString();
-  // const accessToken = (await cookies()).get(TokenName.ACCESS_TOKEN);
-  // const user = await getMeFromServer(accessToken?.value);
-  const user = await getMeFromServer();
-
-  // if (user instanceof FetchError && user.status === HttpStatus.GONE) {
-  //   redirect(RoutePath.Logout);
-  // }
+  const user = await getMeServerApi();
 
   return (
     <main className='min-h-screen pt-6'>

@@ -11,7 +11,10 @@ export type AddressItem = {
   isDefault?: true;
 };
 
-export const getAllAddressFromNextServer = (signal: AbortSignal) => {
+export const getAllAddressClientApi = (signal: AbortSignal) => {
   return apiRequest.get('/api/address', { baseURL: '', signal }).fetchError().json<AddressItem[]>();
 };
-export const getMeFromServer = () => apiRequest.get('/api/v1/users/me').fetchError().json<User>();
+export const getMeServerApi = () => apiRequest.get('/api/v1/users/me').fetchError().json<User>();
+export const getMeExternalApi = (signal?: AbortSignal | null) => {
+  return apiRequest.get('/api/v1/users/me', { signal }).fetchError().json<User>();
+};

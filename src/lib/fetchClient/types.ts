@@ -6,12 +6,14 @@ export type FetchConfig = RequestInit & {
   url: string;
 };
 export type FetchConfigInit = Omit<FetchConfig, 'method' | 'baseURL' | 'url'> & {
+  baseURL?: string;
   data?: BodyInit | Record<string, unknown>;
 };
 export type FetchGetMethodConfig = Omit<FetchConfigInit, 'body' | 'data'> & {
   query?: string | URL | Record<string, string | number | boolean> | URLSearchParams;
 };
-export type FetchErrorHandler = <T>(error: FetchError) => T | FetchError;
+
+export type FetchErrorHandler<T = FetchError> = (error: FetchError) => T | FetchError;
 export type FetchErrorKey = string | symbol | HttpStatus;
 
 export type BodyTypeKey = 'blob' | 'formData' | 'arrayBuffer' | 'text' | null;
@@ -40,3 +42,8 @@ export type InnerParseFunction<TBase> = {
    */
   (): Promise<TBase | FetchError>;
 };
+
+export type FulfilledHandler<T> = (value: T) => T | Promise<T>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type RejectedHandler = (error: any) => any;
+export type InterceptorHandler<T> = { onFulfilled?: FulfilledHandler<T> | null; onRejected?: RejectedHandler | null };

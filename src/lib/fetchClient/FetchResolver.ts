@@ -11,48 +11,52 @@ import {
 import { isFetchError, isObject } from '~/lib/fetchClient/utils';
 
 export class FetchResolver {
-  private _catchers: Map<FetchErrorKey, FetchErrorHandler>;
+  private _catchers: Map<FetchErrorKey, FetchErrorHandler<unknown>>;
   private _promise: Promise<Response>;
 
-  constructor(catchers: Map<FetchErrorKey, FetchErrorHandler>, promise: Promise<Response>) {
+  constructor(catchers: Map<FetchErrorKey, FetchErrorHandler<unknown>>, promise: Promise<Response>) {
     this._catchers = catchers;
     this._promise = promise;
   }
 
-  public error(status: FetchErrorKey, callback: FetchErrorHandler): this {
+  public error<T>(status: FetchErrorKey, callback: FetchErrorHandler<T>): this {
     this._catchers.set(status, callback);
     return this;
   }
 
-  public unprocessableEntity(callback: FetchErrorHandler): this {
-    return this.error(HttpStatus.UNPROCESSABLE_ENTITY, callback);
-  }
-
-  public badRequest(callback: FetchErrorHandler): this {
+  public badRequest<T>(callback: FetchErrorHandler<T>): this {
     return this.error(HttpStatus.BAD_REQUEST, callback);
   }
 
-  public unauthorized(callback: FetchErrorHandler): this {
+  public unauthorized<T>(callback: FetchErrorHandler<T>): this {
     return this.error(HttpStatus.UNAUTHORIZED, callback);
   }
 
-  public forbidden(callback: FetchErrorHandler): this {
+  public forbidden<T>(callback: FetchErrorHandler<T>): this {
     return this.error(HttpStatus.FORBIDDEN, callback);
   }
 
-  public notFound(callback: FetchErrorHandler): this {
+  public notFound<T>(callback: FetchErrorHandler<T>): this {
     return this.error(HttpStatus.NOT_FOUND, callback);
   }
 
-  public gone(callback: FetchErrorHandler): this {
+  public gone<T>(callback: FetchErrorHandler<T>): this {
     return this.error(HttpStatus.GONE, callback);
   }
 
-  public internalServerError(callback: FetchErrorHandler): this {
+  public conflict<T>(callback: FetchErrorHandler<T>): this {
+    return this.error(HttpStatus.CONFLICT, callback);
+  }
+
+  public unprocessableEntity<T>(callback: FetchErrorHandler<T>): this {
+    return this.error(HttpStatus.UNPROCESSABLE_ENTITY, callback);
+  }
+
+  public internalServerError<T>(callback: FetchErrorHandler<T>): this {
     return this.error(HttpStatus.INTERNAL_SERVER_ERROR, callback);
   }
 
-  public fetchError(callback: FetchErrorHandler = (err) => err): this {
+  public fetchError<T>(callback: FetchErrorHandler<T> = (err) => err): this {
     return this.error(FETCH_ERROR, callback);
   }
 
@@ -173,7 +177,7 @@ export class FetchResolver {
       );
   }
 
-  private async catchWrap<T>(promise: Promise<T>) {
+  private async catchWrap<T>(promise: Promise<T>): Promise<T | FetchError> {
     try {
       return await promise;
     } catch (reason) {
@@ -185,10 +189,11 @@ export class FetchResolver {
         const catcher = this._catchers.get(error.status) ?? this._catchers.get(FETCH_ERROR);
         if (!catcher) throw reason;
 
-        return catcher<T>(error);
+        return catcher(error) as FetchError;
       }
 
-      throw reason;
+      console.error(error);
+      throw error;
     }
   }
 }

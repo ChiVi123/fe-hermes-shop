@@ -1,7 +1,6 @@
-'use client';
-
-import { SearchIcon, ShoppingCartIcon, UserIcon } from 'lucide-react';
+import { SearchIcon, ShoppingCartIcon } from 'lucide-react';
 import Link from 'next/link';
+import HeaderAccount from '~/components/layout/HeaderAccount';
 import { Separator } from '~/components/ui/separator';
 
 export default function Header() {
@@ -24,16 +23,14 @@ export default function Header() {
 
         <div className='flex items-center gap-6 h-6'>
           <Link href='/' className='font-bold hover:underline'>
-            Rerun
+            ReRun
           </Link>
 
           <Separator orientation='vertical' />
 
           <div className='flex items-center gap-4'>
             <SearchIcon />
-            <Link href='/login'>
-              <UserIcon />
-            </Link>
+            <HeaderAccount />
             <ShoppingCartIcon />
           </div>
         </div>

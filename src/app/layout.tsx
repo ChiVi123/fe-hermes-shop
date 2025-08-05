@@ -2,6 +2,8 @@ import './globals.css';
 
 import type { Metadata } from 'next';
 import { Nunito_Sans } from 'next/font/google';
+import { ThemeProvider } from '~/components/ThemeProvider';
+import { Toaster } from '~/components/ui/sonner';
 
 const nunitoSans = Nunito_Sans({
   variable: '--font-nunito-sans',
@@ -16,8 +18,14 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang='en'>
-      <body className={`${nunitoSans.variable} antialiased`}>{children}</body>
+    <html lang='en' suppressHydrationWarning>
+      <body className={`${nunitoSans.variable} antialiased`}>
+        {/* TODO: toggle theme */}
+        <ThemeProvider attribute='class' defaultTheme='system' enableSystem disableTransitionOnChange>
+          {children}
+          <Toaster />
+        </ThemeProvider>
+      </body>
     </html>
   );
 }

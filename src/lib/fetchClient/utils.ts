@@ -84,6 +84,9 @@ export const mergeConfig: MergeConfigFn = ({ data, ...meta }, original, ...confi
   );
   const mergedHeaders = mergeHeaders(...headerList);
 
+  if (mergedConfig.baseURL === undefined) {
+    mergedConfig.baseURL = original.baseURL;
+  }
   mergedConfig.headers = mergedHeaders;
   mergedConfig.body = body;
   return mergedConfig;
@@ -161,7 +164,7 @@ const transformRequest: TransformRequest = (headers, data) => {
     isFile(data) ||
     isBlob(data) ||
     isReadableStream(data) ||
-    isArrayBufferView(data) // may you will return data.buffer
+    isArrayBufferView(data) // NOTE: may you will return data.buffer
   ) {
     return data;
   }

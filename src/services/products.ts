@@ -11,11 +11,12 @@ type Product = {
   variant: { price: number; discountPrice: number; color: string };
 };
 
-export const getProductsFromServer = () =>
-  apiRequest
+export const getProductsFromServer = () => {
+  return apiRequest
     .get('/api/v1/products', {
       headers: { overwrite: 'header-value-2' },
-      query: { limit: 10, q: 'shoes', sort: '-createdAt' },
+      query: { limit: 12, sort: '-createdAt' },
     })
-    .fetchError()
+    .fetchError(() => [])
     .json<Product[]>();
+};

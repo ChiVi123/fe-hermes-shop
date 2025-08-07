@@ -1,10 +1,10 @@
 'use client';
 
 import { CheckIcon } from 'lucide-react';
-import { ReactNode, useState } from 'react';
+import { Fragment, ReactNode, useState } from 'react';
 import { cn } from '~/lib/utils';
 
-interface StepItem {
+export interface StepItem {
   title: string;
   subTitle?: string;
   description?: ReactNode;
@@ -20,8 +20,11 @@ export function Stepper({ current, items, ...props }: StepperProps) {
   return (
     <div className='flex items-center gap-4 mb-4' {...props}>
       {items.map((step, stepIndex) => (
-        <div key={stepIndex} data-role='step-item' className='flex-1 flex gap-4'>
-          <div className={cn('flex-[0_0_auto] flex items-center gap-2', { 'items-start': step.description })}>
+        <Fragment key={stepIndex}>
+          <div
+            data-role='step-item'
+            className={cn('flex-[0_0_auto] flex items-center gap-2', { 'items-start': step.description })}
+          >
             <div
               data-role='step-status'
               className={cn('flex-[0_0_auto] flex items-center justify-center size-10 rounded-full text-sm font-bold', {
@@ -58,13 +61,13 @@ export function Stepper({ current, items, ...props }: StepperProps) {
                 className={cn(
                   'absolute top-1/2 right-0 left-0 -translate-y-1/2 w-0 h-0.5 bg-primary transition-[width]',
                   {
-                    'w-full': stepIndex <= current,
+                    'w-full': stepIndex < current,
                   }
                 )}
               ></div>
             </div>
           )}
-        </div>
+        </Fragment>
       ))}
     </div>
   );
@@ -86,8 +89,11 @@ export const useStepper = ({ length }: StepItem[], initial: number = 0) => {
       setStep(step - 1);
     }
   };
+  const handleReset = () => {
+    setStep(0);
+  };
   const isHasNext = () => step < length;
   const isHasPrevious = () => step > 0;
 
-  return { step, setStep, handleNext, handlePrevious, isHasNext, isHasPrevious };
+  return { step, setStep, handleNext, handlePrevious, handleReset, isHasNext, isHasPrevious };
 };

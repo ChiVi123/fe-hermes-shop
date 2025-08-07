@@ -28,8 +28,8 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         {/* TODO: toggle theme */}
         <ThemeProvider attribute='class' defaultTheme='system' enableSystem disableTransitionOnChange>
           <AppProvider initialSessionToken={accessToken?.value}>{children}</AppProvider>
-          <Toaster />
         </ThemeProvider>
+        <Toaster richColors toastOptions={{ closeButton: true }} />
       </body>
     </html>
   );

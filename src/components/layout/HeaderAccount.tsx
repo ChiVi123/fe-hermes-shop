@@ -20,6 +20,7 @@ import { logoutClientApi } from '~/services/auth';
 export default function HeaderAccount({ accessToken }: { accessToken?: string }) {
   const router = useRouter();
   const pathname = usePathname();
+  const isAuthenticated = Boolean(accessToken || clientSessionToken.value);
 
   const handleLogout = () => {
     logoutClientApi().finally(() => {
@@ -29,8 +30,9 @@ export default function HeaderAccount({ accessToken }: { accessToken?: string })
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild={!(accessToken || clientSessionToken.value)}>
-        {accessToken || clientSessionToken.value ? (
+      {/* NOTE: prevent warning hydrate */}
+      <DropdownMenuTrigger disabled={!isAuthenticated} asChild={!isAuthenticated}>
+        {isAuthenticated ? (
           <Image
             src={FALLBACK_AVATAR_URL} // TODO: replace user.avatar
             alt='avatar'

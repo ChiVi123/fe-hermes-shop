@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import z from 'zod';
 import { cookieOptions, TokenName } from '~/constants';
-import { isFetchError } from '~/lib/fetchClient';
+import { HttpStatus, isFetchError } from '~/lib/fetchClient';
 import { isString } from '~/lib/fetchClient/utils';
 import { apiRequest } from '~/lib/requests';
 import { getVerifyEmailPath } from '~/lib/route';
@@ -16,7 +16,12 @@ import {
   isFieldErrors,
   isNonNullable,
 } from '~/lib/utils';
-import { loginFormSchema, registerFormSchema, verifyEmailSchema } from '~/lib/validates/authValidate';
+import {
+  loginFormSchema,
+  registerFormSchema,
+  sendMailFormSchema,
+  verifyEmailSchema,
+} from '~/lib/validates/authValidate';
 import { User } from '~/types/user';
 
 type LoginValues = z.infer<typeof loginFormSchema>;
@@ -24,10 +29,10 @@ type LoginReturnType = Promise<
   {
     errors?: ReturnType<typeof z.flattenError>['fieldErrors'];
     accessToken?: string;
+    isInActivate?: boolean;
     message: string;
   } & Partial<LoginValues>
 >;
-
 export async function loginAction(_: unknown, formData: FormData): LoginReturnType {
   const obj = {
     email: formData.get('email') as string,
@@ -43,12 +48,14 @@ export async function loginAction(_: unknown, formData: FormData): LoginReturnTy
 
   if (isFetchError(result)) {
     let message = result.message;
-    const { data } = result;
+    let isInActivate = false;
+    const { data, status } = result;
     if (isNonNullable(data) && isString(data.message)) {
       message = data.message;
+      isInActivate = status === HttpStatus.FORBIDDEN && data.message.includes('Account is not active');
     }
 
-    return { errors: result.toJSON(), message, ...obj };
+    return { errors: result.toJSON(), isInActivate, message, ...obj };
   }
 
   const cookieStore = await cookies();
@@ -57,6 +64,45 @@ export async function loginAction(_: unknown, formData: FormData): LoginReturnTy
 
   return { errors: undefined, message: 'Login successfully', accessToken: result.accessToken, ...obj };
 }
+
+type SendMailValues = z.infer<typeof sendMailFormSchema>;
+type SendMailReturnType = {
+  errors?: ReturnType<typeof z.flattenError>['fieldErrors'];
+  _id?: string;
+  message: string;
+} & Partial<SendMailValues>;
+export async function resendMailAction(
+  currentState: SendMailReturnType,
+  formData: FormData
+): Promise<SendMailReturnType> {
+  const obj = { toMail: (formData.get('toMail') as string) ?? currentState.toMail };
+  const validatedFields = sendMailFormSchema.safeParse(obj);
+
+  if (!validatedFields.success) {
+    return createZodResponse(validatedFields, obj);
+  }
+
+  const result = await apiRequest
+    .post('/api/v1/auth/resend-mail', { data: validatedFields.data })
+    .unprocessableEntity((error) => fromErrorToFieldErrors<SendMailValues>(error))
+    .fetchError()
+    .json<{ _id: string } | FieldErrors<SendMailValues>>();
+
+  if (isFetchError(result)) {
+    let message = result.message;
+    const { data } = result;
+    if (isNonNullable(data) && isString(data.message)) {
+      message = data.message;
+    }
+
+    return { errors: result.toJSON(), message, ...obj };
+  } else if (isFieldErrors(result)) {
+    return createServerInvalidResponse(result, obj);
+  }
+
+  return { errors: undefined, message: 'Send mail successfully', ...result, ...obj };
+}
+
 type RegisterValues = z.infer<typeof registerFormSchema>;
 type RegisterReturnType = Promise<
   {

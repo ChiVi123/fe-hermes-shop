@@ -8,15 +8,18 @@ import { isClient, isServer } from '~/lib/utils';
 export const apiRequest = new FetchClient(process.env.NEXT_PUBLIC_SERVER_API || '');
 export const clientSessionToken = new SessionToken();
 
+// INTERCEPTOR REQUEST
 apiRequest.interceptor.request.use(async (config) => {
   return handleAuthorization(config);
 });
+// INTERCEPTOR RESPONSE
 apiRequest.interceptor.response.use(
   (res) => res,
   (error) => {
     if (!isFetchError(error)) {
       return Promise.reject(error);
     }
+    // FIXME: login invalid email or password (http status UNAUTHORIZED), should throw error not redirect logout
     if (error.status !== HttpStatus.UNAUTHORIZED) {
       return Promise.reject(error);
     }

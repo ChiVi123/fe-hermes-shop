@@ -28,3 +28,6 @@ export const verifyEmailSchema = z.object({
   id: z.string().regex(OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE).trim(),
   codeId: z.string('Please enter the verify code').trim().nonempty('Please enter the verify code'),
 });
+export const sendMailFormSchema = z.object({
+  toMail: z.email(EMAIL_RULE_MESSAGE).trim(),
+});

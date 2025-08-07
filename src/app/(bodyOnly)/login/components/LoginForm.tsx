@@ -16,12 +16,15 @@ import { Label } from '~/components/ui/label';
 import { Separator } from '~/components/ui/separator';
 import { clientSessionToken } from '~/lib/requests';
 import { RoutePath } from '~/lib/route';
+import { useResendEmailContext } from './ResendEmailProvider';
 
-export default function Form() {
+export default function LoginForm() {
   const [state, action, pending] = useActionState(loginAction, { errors: undefined, message: '' });
   const searchParams = useSearchParams();
   const router = useRouter();
   const redirectFrom = searchParams.get('redirectFrom');
+  const activated = searchParams.get('activate');
+  const { setValue: setResendMail } = useResendEmailContext();
 
   useEffect(() => {
     if (pending === true) return;
@@ -29,6 +32,9 @@ export default function Form() {
     const description = state.message;
     if (state.errors) {
       toast.error('Login Error', { description });
+      if (state.isInActivate) {
+        setResendMail((prev) => ({ ...prev, email: state.email, open: true }));
+      }
       return;
     }
     if (state.accessToken) {
@@ -36,7 +42,7 @@ export default function Form() {
       toast.success('Auth', { description: state.message });
       router.push(RoutePath.Profile);
     }
-  }, [pending, state.errors, state.message, state.accessToken, router]);
+  }, [pending, state.errors, state.message, state.accessToken, router, state.isInActivate, state.email, setResendMail]);
 
   return (
     <>
@@ -45,6 +51,12 @@ export default function Form() {
           <Alert className='mb-4 bg-emerald-500/10 dark:bg-emerald-600/30 border-0 border-l-[10px] border-l-emerald-600'>
             <CircleCheckBigIcon size={16} className='!text-emerald-500' />
             <AlertTitle>You have been successfully logged out.</AlertTitle>
+          </Alert>
+        )}
+        {activated === 'true' && (
+          <Alert className='mb-4 bg-emerald-500/10 dark:bg-emerald-600/30 border-0 border-l-[10px] border-l-emerald-600'>
+            <CircleCheckBigIcon size={16} className='!text-emerald-500' />
+            <AlertTitle>Your account is activated.</AlertTitle>
           </Alert>
         )}
 
@@ -57,7 +69,7 @@ export default function Form() {
                 type='email'
                 name='email'
                 autoComplete='username'
-                placeholder='m@example.com'
+                placeholder='example@email.com'
                 required
                 defaultValue={state.email}
               />
@@ -99,13 +111,13 @@ export default function Form() {
         </div>
 
         <div className='w-full space-y-2'>
-          <Button variant='outline' className='w-full'>
+          <Button type='button' variant='outline' className='w-full'>
             <GoogleIcon fill='#4285F4' strokeWidth={0} />
             Continue with Google
           </Button>
         </div>
 
-        <Button variant='link' asChild>
+        <Button type='button' variant='link' asChild>
           <Link href={RoutePath.Register}>Create an account</Link>
         </Button>
       </CardFooter>

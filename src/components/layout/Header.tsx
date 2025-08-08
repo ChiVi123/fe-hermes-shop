@@ -1,10 +1,12 @@
-'use client';
-
-import { SearchIcon, ShoppingCartIcon, UserIcon } from 'lucide-react';
+import { SearchIcon, ShoppingCartIcon } from 'lucide-react';
+import { cookies } from 'next/headers';
 import Link from 'next/link';
+import HeaderAccount from '~/components/layout/HeaderAccount';
 import { Separator } from '~/components/ui/separator';
+import { TokenName } from '~/constants';
 
-export default function Header() {
+export default async function Header() {
+  const accessToken = (await cookies()).get(TokenName.ACCESS_TOKEN)?.value;
   return (
     <header>
       <div className='flex justify-between items-center px-7 py-3 shadow-black/9 shadow-[0px_2px_24px_0px]'>
@@ -24,16 +26,14 @@ export default function Header() {
 
         <div className='flex items-center gap-6 h-6'>
           <Link href='/' className='font-bold hover:underline'>
-            Rerun
+            ReRun
           </Link>
 
           <Separator orientation='vertical' />
 
           <div className='flex items-center gap-4'>
             <SearchIcon />
-            <Link href='/login'>
-              <UserIcon />
-            </Link>
+            <HeaderAccount accessToken={accessToken} />
             <ShoppingCartIcon />
           </div>
         </div>

@@ -1,4 +1,10 @@
 import Image from 'next/image';
+import Link from 'next/link';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '~/components/ui/carousel';
+import { isFetchError } from '~/lib/fetchClient';
+import { cn } from '~/lib/utils';
+import { getProductsFromServer } from '~/services/products';
 
 const SLIDES = [
   {
@@ -19,6 +25,12 @@ const SLIDES = [
 ];
 
 export default async function Home() {
+  const products = await getProductsFromServer();
+
+  if (isFetchError(products)) {
+    console.log(products.toJSON());
+  }
+
   return (
     <div className='my-12'>
       <section className='mb-10'>
@@ -61,11 +73,82 @@ export default async function Home() {
               </p>
             </div>
           </div>
+
+          {Array.isArray(products) && (
+            <div className='grid grid-cols-2 gap-2'>
+              {products.slice(0, 4).map(({ _id, name, variant }) => (
+                <div key={_id} className='bg-accent'>
+                  <div className='mb-2 overflow-hidden group'>
+                    {/* <Image
+                      src={variant?.images[FIRST_IMAGE_INDEX].url}
+                      alt={name}
+                      width={variant?.images[FIRST_IMAGE_INDEX].width * 0.25}
+                      height={variant?.images[FIRST_IMAGE_INDEX].height * 0.25}
+                      className='size-full transition-transform duration-300 ease-in-out will-change-transform group-hover:scale-105'
+                    /> */}
+                  </div>
+
+                  <div className='flex justify-between px-4'>
+                    <p className='text-sm font-bold'>{name}</p>
+                    <p className='flex items-center gap-1 text-xs font-semibold'>
+                      <span className='text-red-800'>$90</span>
+                      <span className='line-through'>${variant?.price}</span>
+                    </p>
+                  </div>
+
+                  <p className='p-4 text-xs font-semibold'>{variant?.color.replace(/\s*\(.*?\)/, '')}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
       <section>
         <h2 className='px-10 mb-8 text-xl font-bold'>More To Shop</h2>
+
+        {Array.isArray(products) && (
+          <Carousel opts={{ align: 'start', loop: true }} className='[&_>_div]:px-10'>
+            <CarouselContent className='-ml-2'>
+              {products.map(({ _id, name, slugify, variant }) => (
+                <CarouselItem key={_id} className='basis-1/4 pl-2'>
+                  <Link href={`/${slugify}`} className='h-full'>
+                    <Card className='gap-4 py-0 h-full border-0 rounded-none shadow-none group'>
+                      <CardHeader className='px-0'>
+                        <div className='mb-2 bg-accent overflow-hidden'>
+                          {/* <Image
+                            src={variant?.images[FIRST_IMAGE_INDEX].url}
+                            alt={name}
+                            width={variant?.images[FIRST_IMAGE_INDEX].width * 0.1}
+                            height={variant?.images[FIRST_IMAGE_INDEX].height * 0.1}
+                            className='size-full transition-transform duration-300 ease-in-out will-change-transform group-hover:scale-105'
+                          /> */}
+                        </div>
+
+                        <CardTitle className='font-bold'>{name}</CardTitle>
+                        <CardDescription className='text-base'>
+                          {variant?.color.replace(/\s*\(.*?\)/, '')}
+                        </CardDescription>
+                      </CardHeader>
+
+                      <CardContent className='flex items-center gap-1 px-0 font-semibold'>
+                        {variant?.price > variant?.discountPrice && (
+                          <span className='text-red-800'>${variant?.discountPrice}</span>
+                        )}
+                        <span className={cn({ 'line-through': variant?.price > variant?.discountPrice })}>
+                          ${variant?.price}
+                        </span>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+
+            <CarouselPrevious className='left-0 translate-x-1/2 size-10' />
+            <CarouselNext className='right-0 -translate-x-1/2 size-10' />
+          </Carousel>
+        )}
       </section>
 
       <div className='pb-12'></div>

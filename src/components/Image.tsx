@@ -1,11 +1,11 @@
+import { StaticImport } from 'next/dist/shared/lib/get-img-props';
 import NextImage from 'next/image';
 import { ComponentProps, ReactEventHandler, useState } from 'react';
 import { FALLBACK_IMAGE_URL } from '~/constants';
 
-type ImageProps = ComponentProps<typeof NextImage>;
-type ImageSrcProp = ImageProps['src'] | undefined;
+type ImageProps = ComponentProps<typeof NextImage> & { fallback?: string | StaticImport };
 
-export default function Image({ src, onError, ...props }: ImageProps & { src: ImageSrcProp }) {
+export default function Image({ src, fallback, onError, ...props }: ImageProps) {
   const [error, setError] = useState<boolean>(false);
   const srcValue = src ?? FALLBACK_IMAGE_URL;
 
@@ -14,5 +14,5 @@ export default function Image({ src, onError, ...props }: ImageProps & { src: Im
     onError?.(event);
   };
 
-  return <NextImage src={error ? FALLBACK_IMAGE_URL : srcValue} {...props} onError={handleError} />;
+  return <NextImage src={error ? fallback ?? FALLBACK_IMAGE_URL : srcValue} {...props} onError={handleError} />;
 }

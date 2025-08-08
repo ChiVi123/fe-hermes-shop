@@ -24,7 +24,7 @@ export const registerFormSchema = z
       ctx.addIssue({ code: 'custom', message: PASSWORD_CONFIRMATION_MESSAGE, path: ['confirmPassword'] });
     }
   });
-export const verifyEmailSchema = z.object({
+export const verifyAccountFormSchema = z.object({
   userId: z.string().regex(OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE).trim(),
   codeId: z.string('Please enter the verify code').trim().nonempty('Please enter the verify code'),
 });

@@ -4,8 +4,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import z from 'zod';
 import { cookieOptions, TokenName } from '~/constants';
-import { HttpStatus, isFetchError } from '~/lib/fetchClient';
-import { isString } from '~/lib/fetchClient/utils';
+import { FetchError, HttpStatus, isFetchError } from '~/lib/fetchClient';
 import { apiRequest } from '~/lib/requests';
 import { getVerifyEmailPath } from '~/lib/route';
 import {
@@ -15,6 +14,7 @@ import {
   fromErrorToFieldErrors,
   isFieldErrors,
   isNonNullable,
+  isString,
 } from '~/lib/utils';
 import {
   changePasswordFormSchema,
@@ -22,20 +22,14 @@ import {
   registerFormSchema,
   retryActiveFormSchema,
   retryPasswordFormSchema,
-  verifyEmailSchema,
+  verifyAccountFormSchema,
 } from '~/lib/validates/authValidate';
+import { FormActionResolver, FormActionState } from '~/types/formAction';
 import { User } from '~/types/user';
 
 type LoginValues = z.infer<typeof loginFormSchema>;
-type LoginReturnType = Promise<
-  {
-    errors?: ReturnType<typeof z.flattenError>['fieldErrors'];
-    accessToken?: string;
-    isInActivate?: boolean;
-    message: string;
-  } & Partial<LoginValues>
->;
-export async function loginAction(_: unknown, formData: FormData): LoginReturnType {
+type LoginResolver = FormActionResolver<LoginValues, { accessToken?: string; isInActivate?: boolean }>;
+export const loginAction: FormActionState<LoginResolver> = async (_, formData) => {
   const obj = {
     email: formData.get('email') as string,
     password: formData.get('password') as string,
@@ -57,26 +51,19 @@ export async function loginAction(_: unknown, formData: FormData): LoginReturnTy
       isInActivate = status === HttpStatus.FORBIDDEN && data.message.includes('Account is not active');
     }
 
-    return { errors: result.toJSON(), isInActivate, message, ...obj };
+    return { error: result.toJSON(), isInActivate, message, ...obj };
   }
 
   const cookieStore = await cookies();
   cookieStore.set(TokenName.ACCESS_TOKEN, result.accessToken, cookieOptions);
   cookieStore.set(TokenName.REFRESH_TOKEN, result.refreshToken, cookieOptions);
 
-  return { errors: undefined, message: 'Login successfully', accessToken: result.accessToken, ...obj };
-}
+  return { message: 'Login successfully', success: true, accessToken: result.accessToken, ...obj };
+};
 
 type RetryActiveValues = z.infer<typeof retryActiveFormSchema>;
-type RetryActiveReturnType = {
-  errors?: ReturnType<typeof z.flattenError>['fieldErrors'];
-  _id?: string;
-  message: string;
-} & Partial<RetryActiveValues>;
-export async function retryActiveAction(
-  currentState: RetryActiveReturnType,
-  formData: FormData
-): Promise<RetryActiveReturnType> {
+type RetryActiveResolver = FormActionResolver<RetryActiveValues, { _id?: string }>;
+export const retryActiveAction: FormActionState<RetryActiveResolver> = async (currentState, formData) => {
   const obj = { toMail: (formData.get('toMail') as string) ?? currentState.toMail };
   const validatedFields = retryActiveFormSchema.safeParse(obj);
 
@@ -88,31 +75,20 @@ export async function retryActiveAction(
     .post('/api/v1/auth/retry-active', { data: validatedFields.data })
     .unprocessableEntity((error) => fromErrorToFieldErrors<RetryActiveValues>(error))
     .fetchError()
-    .json<{ _id: string } | FieldErrors<RetryActiveValues>>();
+    .json<{ _id: string } | RetryActiveResolver['fieldErrors']>();
 
   if (isFetchError(result)) {
-    let message = result.message;
-    const { data } = result;
-    if (isNonNullable(data) && isString(data.message)) {
-      message = data.message;
-    }
-
-    return { errors: result.toJSON(), message, ...obj };
+    return fromFetchErrorToActionError(result, obj);
   } else if (isFieldErrors(result)) {
     return createServerInvalidResponse(result, obj);
   }
 
-  return { errors: undefined, message: 'Send mail successfully', ...result, ...obj };
-}
+  return { message: 'Send mail successfully', success: true, ...result, ...obj };
+};
 
 type RegisterValues = z.infer<typeof registerFormSchema>;
-type RegisterReturnType = Promise<
-  {
-    errors?: ReturnType<typeof z.flattenError>['fieldErrors'];
-    message: string;
-  } & Partial<RegisterValues>
->;
-export async function registerAction(_: unknown, formData: FormData): RegisterReturnType {
+type RegisterResolver = FormActionResolver<RegisterValues>;
+export const registerAction: FormActionState<RegisterResolver> = async (_, formData) => {
   const obj = {
     email: formData.get('email') as string,
     username: formData.get('username') as string,
@@ -135,34 +111,22 @@ export async function registerAction(_: unknown, formData: FormData): RegisterRe
     .json<{ _id: string } | FieldErrors<RegisterValues>>();
 
   if (isFetchError(result)) {
-    let message = result.message;
-    const { data } = result;
-    if (isNonNullable(data) && isString(data.message)) {
-      message = data.message;
-    }
-
-    return { errors: result.toJSON(), message, ...obj };
+    return fromFetchErrorToActionError(result, obj);
   } else if (isFieldErrors(result)) {
     return createServerInvalidResponse(result, obj);
   }
 
   redirect(getVerifyEmailPath(result._id));
-}
+};
 
-type VerifyEmailValues = z.infer<typeof verifyEmailSchema>;
-type VerifyEmailReturnType = Promise<
-  {
-    errors?: ReturnType<typeof z.flattenError>['fieldErrors'];
-    success?: true;
-    message: string;
-  } & Partial<VerifyEmailValues>
->;
-export async function verifyEmailAction(_: unknown, formData: FormData): VerifyEmailReturnType {
+type VerifyAccountValues = z.infer<typeof verifyAccountFormSchema>;
+type VerifyAccountResolver = FormActionResolver<VerifyAccountValues>;
+export const verifyAccountAction: FormActionState<VerifyAccountResolver> = async (_, formData) => {
   const obj = {
     userId: formData.get('userId') as string,
     codeId: formData.get('codeId') as string,
   };
-  const validatedFields = verifyEmailSchema.safeParse(obj);
+  const validatedFields = verifyAccountFormSchema.safeParse(obj);
   if (!validatedFields.success) {
     return createZodResponse(validatedFields, obj);
   }
@@ -173,28 +137,15 @@ export async function verifyEmailAction(_: unknown, formData: FormData): VerifyE
     .json<{ message: string }>();
 
   if (isFetchError(result)) {
-    let message = result.message;
-    const { data } = result;
-    if (isNonNullable(data) && isString(data.message)) {
-      message = data.message;
-    }
-
-    return { errors: result.toJSON(), message, ...obj };
+    return fromFetchErrorToActionError(result, obj);
   }
 
-  return { errors: undefined, message: result.message, success: true, ...obj };
-}
+  return { message: result.message, success: true, ...obj };
+};
 
 type RetryPasswordValues = z.infer<typeof retryPasswordFormSchema>;
-type RetryPasswordReturnType = {
-  errors?: ReturnType<typeof z.flattenError>['fieldErrors'];
-  _id?: string;
-  message: string;
-} & Partial<RetryPasswordValues>;
-export async function retryPasswordAction(
-  currentState: RetryPasswordReturnType,
-  formData: FormData
-): Promise<RetryPasswordReturnType> {
+type RetryPasswordResolver = FormActionResolver<RetryPasswordValues, { _id?: string }>;
+export const retryPasswordAction: FormActionState<RetryPasswordResolver> = async (currentState, formData) => {
   const obj = { toMail: (formData.get('toMail') as string) ?? currentState.toMail };
   const validatedFields = retryPasswordFormSchema.safeParse(obj);
 
@@ -209,31 +160,19 @@ export async function retryPasswordAction(
     .json<{ _id: string } | FieldErrors<RetryPasswordValues>>();
 
   if (isFetchError(result)) {
-    let message = result.message;
-    const { data } = result;
-    if (isNonNullable(data) && isString(data.message)) {
-      message = data.message;
-    }
-
-    return { errors: result.toJSON(), message, ...obj };
+    return fromFetchErrorToActionError(result, obj);
   } else if (isFieldErrors(result)) {
     return createServerInvalidResponse(result, obj);
   }
 
-  return { errors: undefined, message: 'Send mail successfully', ...result, ...obj };
-}
+  return { message: 'Send mail successfully', success: true, ...result, ...obj };
+};
 
 type ChangePasswordValues = z.infer<typeof changePasswordFormSchema>;
-type ChangePasswordReturnType = Promise<
-  {
-    errors?: ReturnType<typeof z.flattenError>['fieldErrors'];
-    success?: true;
-    message: string;
-  } & Partial<ChangePasswordValues>
->;
-export async function changePasswordAction(_: unknown, formData: FormData): ChangePasswordReturnType {
+type ChangePasswordResolver = FormActionResolver<ChangePasswordValues>;
+export const changePasswordAction: FormActionState<ChangePasswordResolver> = async (currentState, formData) => {
   const obj = {
-    userId: formData.get('userId') as string,
+    userId: (formData.get('userId') as string) ?? currentState.userId,
     codeId: formData.get('codeId') as string,
     password: formData.get('password') as string,
     confirmPassword: formData.get('confirmPassword') as string,
@@ -249,14 +188,18 @@ export async function changePasswordAction(_: unknown, formData: FormData): Chan
     .json<{ message: string }>();
 
   if (isFetchError(result)) {
-    let message = result.message;
-    const { data } = result;
-    if (isNonNullable(data) && isString(data.message)) {
-      message = data.message;
-    }
-
-    return { errors: result.toJSON(), message, ...obj };
+    return fromFetchErrorToActionError(result, obj);
   }
 
-  return { errors: undefined, message: result.message, success: true, ...obj };
-}
+  return { message: result.message, success: true, ...obj };
+};
+
+const fromFetchErrorToActionError = <T>(error: FetchError, obj: T): FormActionResolver<T> => {
+  let message = error.message;
+  const { data } = error;
+  if (isNonNullable(data) && isString(data.message)) {
+    message = data.message;
+  }
+
+  return { error: error.toJSON(), message, ...obj };
+};

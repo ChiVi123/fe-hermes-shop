@@ -25,16 +25,14 @@ export default function LoginPage() {
   }, [pathname, reason, router]);
 
   return (
-    <main className='flex justify-center pt-4'>
-      <Card className='w-full max-w-sm'>
-        <CardHeader>
-          <CardTitle className='pb-4 mb-4 border-b text-2xl text-center font-bold italic'>HermesShop</CardTitle>
-          <CardDescription className='flex justify-center items-center gap-2'>
-            <LoaderCircleIcon strokeWidth={4} className='animate-[spin_2s_linear_infinite]' />
-            <span className='text-xl font-semibold'>Logout...</span>
-          </CardDescription>
-        </CardHeader>
-      </Card>
-    </main>
+    <Card className='self-start w-full max-w-sm mt-8'>
+      <CardHeader>
+        <CardTitle className='pb-4 mb-4 border-b text-2xl text-center font-bold italic'>HermesShop</CardTitle>
+        <CardDescription className='flex justify-center items-center gap-2'>
+          <LoaderCircleIcon strokeWidth={4} className='animate-[spin_2s_linear_infinite]' />
+          <span className='text-xl font-semibold'>Logout...</span>
+        </CardDescription>
+      </CardHeader>
+    </Card>
   );
 }

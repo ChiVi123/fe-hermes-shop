@@ -1,10 +1,10 @@
 export enum RoutePath {
   Home = '/',
-  Login = '/login',
-  Register = '/register',
+  Login = '/auth/login',
+  Register = '/auth/register',
   Profile = '/profile',
-  Logout = '/logout',
-  Verify = '/verify',
+  Logout = '/auth/logout',
+  VerifyAccount = '/auth/verify-account',
 }
 
 // ✅ Login status query param
@@ -16,11 +16,16 @@ export enum LoginStatus {
   PasswordChanged = 'passwordChanged',
 }
 
-export const AUTH_ROUTES: string[] = [RoutePath.Login, RoutePath.Register, RoutePath.Verify];
+export enum AuthType {
+  Login = 'login',
+  Register = 'register',
+}
+
+export const AUTH_ROUTES: string[] = [RoutePath.Login, RoutePath.Register, RoutePath.VerifyAccount];
 export const PRIVATE_ROUTES: string[] = [RoutePath.Profile];
 
 // ✅ Verify email path with user ID
-export const getVerifyEmailPath = (id: string) => `${RoutePath.Verify}/${id}`;
+export const getVerifyEmailPath = (id: string) => `${RoutePath.VerifyAccount}/${id}`;
 
 // ✅ Redirect to login with optional status
 export const getLoginPath = (options?: { redirectFrom?: string; status?: LoginStatus }): string => {

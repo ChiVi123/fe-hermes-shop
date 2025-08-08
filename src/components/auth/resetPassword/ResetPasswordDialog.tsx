@@ -1,9 +1,10 @@
 'use client';
 
-import { SendIcon, ShieldCheckIcon, ShieldEllipsisIcon } from 'lucide-react';
+import { SendIcon, ShieldCheckIcon, ShieldUserIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { useResendEmailContext } from '~/app/(bodyOnly)/login/components/ResendEmailProvider';
+import ChangePasswordForm from '~/components/auth/resetPassword/ChangePasswordForm';
+import RetryPasswordForm from '~/components/auth/resetPassword/RetryPasswordForm';
 import { Button } from '~/components/ui/button';
 import {
   Dialog,
@@ -13,11 +14,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from '~/components/ui/dialog';
 import { StepItem, Stepper, useStepper } from '~/components/ui/stepper';
 import { getLoginPath, LoginStatus } from '~/lib/route';
-import ResendMailForm from './ResendMailForm';
-import VerifyForm from './VerifyForm';
 
 const items: StepItem[] = [
   {
@@ -25,8 +25,8 @@ const items: StepItem[] = [
     icon: <SendIcon />,
   },
   {
-    title: 'Verify',
-    icon: <ShieldEllipsisIcon />,
+    title: 'Change password',
+    icon: <ShieldUserIcon />,
   },
   {
     title: 'Done',
@@ -35,44 +35,47 @@ const items: StepItem[] = [
 ];
 const enum StepInfo {
   SendMail = 0,
-  Verify = 1,
+  ChangePassword = 1,
   Done = 2,
 }
 
-export default function DialogActivateAccount() {
-  const {
-    value: { open, email },
-    setValue,
-  } = useResendEmailContext();
+export default function ResetPasswordDialog() {
   const { step, handleNext, handleReset } = useStepper(items);
   const [userId, setUserId] = useState<string>();
   const router = useRouter();
 
-  const handleDialogOpenChange = (v: boolean) => {
-    setValue((prev) => ({ ...prev, open: v }));
-    handleReset();
+  const handleDialogOpenChange = (open: boolean) => {
+    if (open === false) {
+      handleReset();
+    }
   };
   const handleResendSuccess = (id: string) => {
     setUserId(id);
     handleNext();
   };
   const handleDone = () => {
-    router.push(getLoginPath({ status: LoginStatus.Activated }));
+    router.push(getLoginPath({ status: LoginStatus.PasswordChanged }));
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
+    <Dialog onOpenChange={handleDialogOpenChange}>
+      <DialogTrigger asChild>
+        <Button variant='link' size='sm'>
+          Forgot your password?
+        </Button>
+      </DialogTrigger>
+
       <DialogContent ignoreOutsideClickSelector='[data-sonner-toaster]' className='sm:max-w-xl'>
         <DialogHeader>
-          <DialogTitle>Activate account</DialogTitle>
+          <DialogTitle>Forgot password</DialogTitle>
           <DialogDescription></DialogDescription>
         </DialogHeader>
         <Stepper current={step} items={items} />
 
-        {step === StepInfo.SendMail && <ResendMailForm email={email} onSuccess={handleResendSuccess} />}
-        {step === StepInfo.Verify && <VerifyForm userId={userId} onSuccess={handleNext} />}
+        {step === StepInfo.SendMail && <RetryPasswordForm onSuccess={handleResendSuccess} />}
+        {step === StepInfo.ChangePassword && <ChangePasswordForm userId={userId} onSuccess={handleNext} />}
         {step === StepInfo.Done && (
-          <p className='my-1 text-muted-foreground text-sm'>Your account is activate, login again.</p>
+          <p className='my-1 text-muted-foreground text-sm'>Your password was changed, login again.</p>
         )}
 
         <DialogFooter>

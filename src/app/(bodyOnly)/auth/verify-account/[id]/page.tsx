@@ -1,10 +1,10 @@
-import type { Metadata } from 'next';
+import { Metadata } from 'next';
 import Link from 'next/link';
+import VerifyAccountForm from '~/components/auth/VerifyAccountForm';
 import { Card, CardDescription, CardHeader, CardTitle } from '~/components/ui/card';
-import Form from './components/Form';
 
 export const metadata: Metadata = {
-  title: 'Verify - Hermes Shop',
+  title: 'Verify account - Hermes Shop',
   description: '',
 };
 
@@ -23,7 +23,7 @@ export default function VerifyPage() {
           </CardDescription>
         </CardHeader>
 
-        <Form />
+        <VerifyAccountForm />
       </Card>
     </main>
   );

@@ -1,6 +1,5 @@
 import { TokenName } from '~/constants';
-import { FetchClient, HeaderKeys, HttpStatus, isFetchError } from '~/lib/fetchClient';
-import { FetchConfig } from '~/lib/fetchClient/types';
+import { FetchClient, FetchConfig, HeaderKeys, HttpStatus, isFetchError } from '~/lib/fetchClient';
 import { RoutePath } from '~/lib/route';
 import { SessionToken } from '~/lib/SessionToken';
 import { isClient, isServer } from '~/lib/utils';

@@ -15,15 +15,16 @@ import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { Separator } from '~/components/ui/separator';
 import { clientSessionToken } from '~/lib/requests';
-import { RoutePath } from '~/lib/route';
+import { LoginStatus, resolveRedirectUrl, RoutePath } from '~/lib/route';
 import { useResendEmailContext } from './ResendEmailProvider';
+import ResetPasswordDialog from './ResetPasswordDialog';
 
 export default function LoginForm() {
   const [state, action, pending] = useActionState(loginAction, { errors: undefined, message: '' });
   const searchParams = useSearchParams();
   const router = useRouter();
   const redirectFrom = searchParams.get('redirectFrom');
-  const activated = searchParams.get('activate');
+  const loginStatus = searchParams.get('status');
   const { setValue: setResendMail } = useResendEmailContext();
 
   useEffect(() => {
@@ -40,9 +41,19 @@ export default function LoginForm() {
     if (state.accessToken) {
       clientSessionToken.value = state.accessToken;
       toast.success('Auth', { description: state.message });
-      router.push(RoutePath.Profile);
+      router.push(resolveRedirectUrl(redirectFrom, RoutePath.Profile, { normalize: true }));
     }
-  }, [pending, state.errors, state.message, state.accessToken, router, state.isInActivate, state.email, setResendMail]);
+  }, [
+    pending,
+    state.errors,
+    state.message,
+    state.accessToken,
+    router,
+    state.isInActivate,
+    state.email,
+    setResendMail,
+    redirectFrom,
+  ]);
 
   return (
     <>
@@ -53,10 +64,16 @@ export default function LoginForm() {
             <AlertTitle>You have been successfully logged out.</AlertTitle>
           </Alert>
         )}
-        {activated === 'true' && (
+        {loginStatus === LoginStatus.Activated && (
           <Alert className='mb-4 bg-emerald-500/10 dark:bg-emerald-600/30 border-0 border-l-[10px] border-l-emerald-600'>
             <CircleCheckBigIcon size={16} className='!text-emerald-500' />
-            <AlertTitle>Your account is activated.</AlertTitle>
+            <AlertTitle>Your account was activated.</AlertTitle>
+          </Alert>
+        )}
+        {loginStatus === LoginStatus.PasswordChanged && (
+          <Alert className='mb-4 bg-emerald-500/10 dark:bg-emerald-600/30 border-0 border-l-[10px] border-l-emerald-600'>
+            <CircleCheckBigIcon size={16} className='!text-emerald-500' />
+            <AlertTitle>Your password was changed.</AlertTitle>
           </Alert>
         )}
 
@@ -77,11 +94,9 @@ export default function LoginForm() {
             </div>
 
             <div className='grid gap-2'>
-              <div className='flex items-center'>
+              <div className='flex items-center justify-between'>
                 <Label htmlFor='password'>Password</Label>
-                <a href='#' className='ml-auto inline-block text-sm underline-offset-4 hover:underline'>
-                  Forgot your password?
-                </a>
+                <ResetPasswordDialog />
               </div>
               <Input
                 id='password'

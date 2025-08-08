@@ -14,7 +14,7 @@ import {
 } from '~/components/ui/dropdown-menu';
 import { FALLBACK_AVATAR_URL } from '~/constants';
 import { clientSessionToken } from '~/lib/requests';
-import { getLoginRedirectFrom, RoutePath } from '~/lib/route';
+import { getLoginPath, RoutePath } from '~/lib/route';
 import { logoutClientApi } from '~/services/auth';
 
 export default function HeaderAccount({ accessToken }: { accessToken?: string }) {
@@ -24,7 +24,7 @@ export default function HeaderAccount({ accessToken }: { accessToken?: string })
 
   const handleLogout = () => {
     logoutClientApi().finally(() => {
-      router.push(getLoginRedirectFrom(pathname));
+      router.push(getLoginPath({ redirectFrom: pathname }));
     });
   };
 

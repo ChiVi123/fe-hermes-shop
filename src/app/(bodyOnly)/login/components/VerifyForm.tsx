@@ -10,11 +10,11 @@ import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 
 interface Props {
-  id?: string;
+  userId?: string;
   onSuccess(): void;
 }
 
-export default function VerifyForm({ id, onSuccess }: Props) {
+export default function VerifyForm({ userId: id, onSuccess }: Props) {
   const [state, action, pending] = useActionState(verifyEmailAction, { errors: undefined, message: '' });
 
   useEffect(() => {
@@ -44,7 +44,7 @@ export default function VerifyForm({ id, onSuccess }: Props) {
 
           <div className='grid gap-2'>
             <Label htmlFor='codeId'>Code</Label>
-            <Input id='codeId' name='codeId' required defaultValue={state.id} />
+            <Input id='codeId' name='codeId' required defaultValue={state.codeId} />
             <FormMessage errorId='codeId' error={state.errors} />
           </div>
 

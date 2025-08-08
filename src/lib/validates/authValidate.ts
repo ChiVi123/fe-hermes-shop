@@ -25,9 +25,24 @@ export const registerFormSchema = z
     }
   });
 export const verifyEmailSchema = z.object({
-  id: z.string().regex(OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE).trim(),
+  userId: z.string().regex(OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE).trim(),
   codeId: z.string('Please enter the verify code').trim().nonempty('Please enter the verify code'),
 });
-export const sendMailFormSchema = z.object({
+export const retryActiveFormSchema = z.object({
   toMail: z.email(EMAIL_RULE_MESSAGE).trim(),
 });
+export const retryPasswordFormSchema = z.object({
+  toMail: z.email(EMAIL_RULE_MESSAGE).trim(),
+});
+export const changePasswordFormSchema = z
+  .object({
+    userId: z.string().regex(OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE).trim(),
+    codeId: z.string('Please enter the verify code').trim().nonempty('Please enter the verify code'),
+    password: z.string().regex(PASSWORD_RULE, PASSWORD_RULE_MESSAGE).trim(),
+    confirmPassword: z.string().regex(PASSWORD_RULE, PASSWORD_RULE_MESSAGE).trim(),
+  })
+  .superRefine(({ confirmPassword, password }, ctx) => {
+    if (confirmPassword !== password) {
+      ctx.addIssue({ code: 'custom', message: PASSWORD_CONFIRMATION_MESSAGE, path: ['confirmPassword'] });
+    }
+  });

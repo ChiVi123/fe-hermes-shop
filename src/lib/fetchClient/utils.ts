@@ -121,9 +121,6 @@ const isBlob = (value: unknown): value is Blob => {
 const isURLSearchParams = (value: unknown): value is URLSearchParams => {
   return typeof URLSearchParams !== 'undefined' && value instanceof URLSearchParams;
 };
-const isBuffer = (value: unknown): value is Buffer => {
-  return typeof Buffer !== 'undefined' && value instanceof Buffer;
-};
 const isArrayBufferView = (value: unknown): value is ArrayBufferView => {
   return ArrayBuffer.isView(value);
 };
@@ -157,16 +154,12 @@ const transformRequest: TransformRequest = (headers, data) => {
     return new FormData(data);
   }
 
-  if (
-    isFormData(data) ||
-    isArrayBuffer(data) ||
-    isBuffer(data) ||
-    isFile(data) ||
-    isBlob(data) ||
-    isReadableStream(data) ||
-    isArrayBufferView(data) // NOTE: may you will return data.buffer
-  ) {
+  if (isFormData(data) || isArrayBuffer(data) || isFile(data) || isBlob(data) || isReadableStream(data)) {
     return data;
+  }
+
+  if (isArrayBufferView(data)) {
+    return data.buffer;
   }
 
   if (isURLSearchParams(data)) {

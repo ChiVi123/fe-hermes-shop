@@ -4,7 +4,7 @@ import { LoaderCircleIcon } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useMemo } from 'react';
 import { Card, CardDescription, CardHeader, CardTitle } from '~/components/ui/card';
-import { getLoginRedirectFrom } from '~/lib/route';
+import { getLoginPath } from '~/lib/route';
 import { logoutClientApi } from '~/services/auth';
 
 export default function LoginPage() {
@@ -16,7 +16,7 @@ export default function LoginPage() {
     const controller = new AbortController();
 
     logoutClientApi(controller.signal).finally(() => {
-      router.push(getLoginRedirectFrom(pathname));
+      router.push(getLoginPath({ redirectFrom: pathname }));
     });
 
     return () => {

@@ -12,7 +12,7 @@ import { CardContent, CardFooter } from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { Separator } from '~/components/ui/separator';
-import { RoutePath } from '~/lib/route';
+import { getLoginPath, LoginStatus, RoutePath } from '~/lib/route';
 
 export default function Form() {
   const { id } = useParams();
@@ -29,7 +29,7 @@ export default function Form() {
     }
     if (state.success) {
       toast.success('Auth', { description });
-      router.push(RoutePath.Login);
+      router.push(getLoginPath({ status: LoginStatus.Activated }));
     }
   }, [pending, router, state.errors, state.message, state.success]);
 
@@ -39,8 +39,14 @@ export default function Form() {
         <form id='signUpForm' noValidate action={action}>
           <div className='flex flex-col gap-6'>
             <div className='grid gap-2'>
-              <Input id='id' name='id' required hidden={process.env.NODE_ENV !== 'development'} defaultValue={id} />
-              <FormMessage errorId='id' error={state.errors} />
+              <Input
+                id='userId'
+                name='userId'
+                required
+                hidden={process.env.NODE_ENV !== 'development'}
+                defaultValue={id}
+              />
+              <FormMessage errorId='userId' error={state.errors} />
             </div>
 
             <div className='grid gap-2'>

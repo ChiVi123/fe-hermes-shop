@@ -3,19 +3,21 @@
 import { Loader2Icon } from 'lucide-react';
 import { useActionState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { retryActiveAction } from '~/actions/authActions';
+import { retryPasswordAction } from '~/actions/authActions';
 import FormMessage from '~/components/FormMessage';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 
 interface Props {
-  email?: string;
   onSuccess(id: string): void;
 }
 
-export default function ResendMailForm({ email, onSuccess }: Props) {
-  const [state, action, pending] = useActionState(retryActiveAction, { errors: undefined, message: '', toMail: email });
+export default function RetryPasswordForm({ onSuccess }: Props) {
+  const [state, action, pending] = useActionState(retryPasswordAction, {
+    errors: undefined,
+    message: '',
+  });
 
   useEffect(() => {
     if (pending === true) return;
@@ -33,9 +35,9 @@ export default function ResendMailForm({ email, onSuccess }: Props) {
 
   return (
     <>
-      <p className='my-1 text-muted-foreground text-sm'>Your account is inactivate.</p>
+      <p className='my-1 text-muted-foreground text-sm'>Enter your email for process change password.</p>
 
-      <form id='sendMailForm' action={action} noValidate>
+      <form id='retryPasswordForm' action={action} noValidate>
         <div className='grid grid-cols-1 gap-6'>
           <div className='grid gap-2'>
             <Label htmlFor='toMail'>Email</Label>
@@ -45,7 +47,6 @@ export default function ResendMailForm({ email, onSuccess }: Props) {
               name='toMail'
               autoComplete='username'
               placeholder='example@gmail.com'
-              disabled
               required
               defaultValue={state.toMail}
             />
@@ -53,7 +54,8 @@ export default function ResendMailForm({ email, onSuccess }: Props) {
           </div>
 
           <div>
-            <Button type='submit' form='sendMailForm' disabled={pending}>
+            {/* TODO: refactor to reuse button */}
+            <Button type='submit' form='retryPasswordForm' disabled={pending}>
               {pending && <Loader2Icon className='animate-spin' />}
               {pending ? 'Please wait' : 'Send'}
             </Button>

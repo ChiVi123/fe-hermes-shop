@@ -17,9 +17,11 @@ import {
   isNonNullable,
 } from '~/lib/utils';
 import {
+  changePasswordFormSchema,
   loginFormSchema,
   registerFormSchema,
-  sendMailFormSchema,
+  retryActiveFormSchema,
+  retryPasswordFormSchema,
   verifyEmailSchema,
 } from '~/lib/validates/authValidate';
 import { User } from '~/types/user';
@@ -65,28 +67,28 @@ export async function loginAction(_: unknown, formData: FormData): LoginReturnTy
   return { errors: undefined, message: 'Login successfully', accessToken: result.accessToken, ...obj };
 }
 
-type SendMailValues = z.infer<typeof sendMailFormSchema>;
-type SendMailReturnType = {
+type RetryActiveValues = z.infer<typeof retryActiveFormSchema>;
+type RetryActiveReturnType = {
   errors?: ReturnType<typeof z.flattenError>['fieldErrors'];
   _id?: string;
   message: string;
-} & Partial<SendMailValues>;
-export async function resendMailAction(
-  currentState: SendMailReturnType,
+} & Partial<RetryActiveValues>;
+export async function retryActiveAction(
+  currentState: RetryActiveReturnType,
   formData: FormData
-): Promise<SendMailReturnType> {
+): Promise<RetryActiveReturnType> {
   const obj = { toMail: (formData.get('toMail') as string) ?? currentState.toMail };
-  const validatedFields = sendMailFormSchema.safeParse(obj);
+  const validatedFields = retryActiveFormSchema.safeParse(obj);
 
   if (!validatedFields.success) {
     return createZodResponse(validatedFields, obj);
   }
 
   const result = await apiRequest
-    .post('/api/v1/auth/resend-mail', { data: validatedFields.data })
-    .unprocessableEntity((error) => fromErrorToFieldErrors<SendMailValues>(error))
+    .post('/api/v1/auth/retry-active', { data: validatedFields.data })
+    .unprocessableEntity((error) => fromErrorToFieldErrors<RetryActiveValues>(error))
     .fetchError()
-    .json<{ _id: string } | FieldErrors<SendMailValues>>();
+    .json<{ _id: string } | FieldErrors<RetryActiveValues>>();
 
   if (isFetchError(result)) {
     let message = result.message;
@@ -157,7 +159,7 @@ type VerifyEmailReturnType = Promise<
 >;
 export async function verifyEmailAction(_: unknown, formData: FormData): VerifyEmailReturnType {
   const obj = {
-    id: formData.get('id') as string,
+    userId: formData.get('userId') as string,
     codeId: formData.get('codeId') as string,
   };
   const validatedFields = verifyEmailSchema.safeParse(obj);
@@ -167,6 +169,82 @@ export async function verifyEmailAction(_: unknown, formData: FormData): VerifyE
 
   const result = await apiRequest
     .post('/api/v1/auth/verify', { data: validatedFields.data })
+    .fetchError()
+    .json<{ message: string }>();
+
+  if (isFetchError(result)) {
+    let message = result.message;
+    const { data } = result;
+    if (isNonNullable(data) && isString(data.message)) {
+      message = data.message;
+    }
+
+    return { errors: result.toJSON(), message, ...obj };
+  }
+
+  return { errors: undefined, message: result.message, success: true, ...obj };
+}
+
+type RetryPasswordValues = z.infer<typeof retryPasswordFormSchema>;
+type RetryPasswordReturnType = {
+  errors?: ReturnType<typeof z.flattenError>['fieldErrors'];
+  _id?: string;
+  message: string;
+} & Partial<RetryPasswordValues>;
+export async function retryPasswordAction(
+  currentState: RetryPasswordReturnType,
+  formData: FormData
+): Promise<RetryPasswordReturnType> {
+  const obj = { toMail: (formData.get('toMail') as string) ?? currentState.toMail };
+  const validatedFields = retryPasswordFormSchema.safeParse(obj);
+
+  if (!validatedFields.success) {
+    return createZodResponse(validatedFields, obj);
+  }
+
+  const result = await apiRequest
+    .post('/api/v1/auth/retry-password', { data: validatedFields.data })
+    .unprocessableEntity((error) => fromErrorToFieldErrors<RetryPasswordValues>(error))
+    .fetchError()
+    .json<{ _id: string } | FieldErrors<RetryPasswordValues>>();
+
+  if (isFetchError(result)) {
+    let message = result.message;
+    const { data } = result;
+    if (isNonNullable(data) && isString(data.message)) {
+      message = data.message;
+    }
+
+    return { errors: result.toJSON(), message, ...obj };
+  } else if (isFieldErrors(result)) {
+    return createServerInvalidResponse(result, obj);
+  }
+
+  return { errors: undefined, message: 'Send mail successfully', ...result, ...obj };
+}
+
+type ChangePasswordValues = z.infer<typeof changePasswordFormSchema>;
+type ChangePasswordReturnType = Promise<
+  {
+    errors?: ReturnType<typeof z.flattenError>['fieldErrors'];
+    success?: true;
+    message: string;
+  } & Partial<ChangePasswordValues>
+>;
+export async function changePasswordAction(_: unknown, formData: FormData): ChangePasswordReturnType {
+  const obj = {
+    userId: formData.get('userId') as string,
+    codeId: formData.get('codeId') as string,
+    password: formData.get('password') as string,
+    confirmPassword: formData.get('confirmPassword') as string,
+  };
+  const validatedFields = changePasswordFormSchema.safeParse(obj);
+  if (!validatedFields.success) {
+    return createZodResponse(validatedFields, obj);
+  }
+
+  const result = await apiRequest
+    .post('/api/v1/auth/change-password', { data: validatedFields.data })
     .fetchError()
     .json<{ message: string }>();
 

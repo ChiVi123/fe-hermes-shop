@@ -1,10 +1,10 @@
 import { TokenName } from '~/constants';
-import { FetchClient, FetchConfig, HeaderKeys, HttpStatus, isFetchError } from '~/lib/fetchClient';
+import { fetchainFactory, FetchConfig, HeaderKeys, HttpStatus, isHttpError } from '~/lib/fetchain';
 import { RoutePath } from '~/lib/route';
 import { SessionToken } from '~/lib/SessionToken';
 import { isClient, isServer } from '~/lib/utils';
 
-export const apiRequest = new FetchClient(process.env.NEXT_PUBLIC_SERVER_API || '');
+export const apiRequest = fetchainFactory(process.env.NEXT_PUBLIC_SERVER_API ?? '', { prefix: '/api/v1' });
 export const clientSessionToken = new SessionToken();
 
 // INTERCEPTOR REQUEST
@@ -15,7 +15,7 @@ apiRequest.interceptor.request.use(async (config) => {
 apiRequest.interceptor.response.use(
   (res) => res,
   (error) => {
-    if (!isFetchError(error)) {
+    if (!isHttpError(error)) {
       return Promise.reject(error);
     }
     // FIXME: login invalid email or password (http status UNAUTHORIZED), should throw error not redirect logout
@@ -29,7 +29,7 @@ apiRequest.interceptor.response.use(
 
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { redirect } = require('next/navigation');
-    redirect(RoutePath.Logout); // NOTE: I ignore error (NEXT_REDIRECT) and app not crash
+    redirect(RoutePath.Logout); // NOTE: I ignore error (NEXT_REDIRECT) and app not crash, make sure any catch after
   }
 );
 

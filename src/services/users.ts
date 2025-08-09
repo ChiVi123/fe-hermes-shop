@@ -12,9 +12,14 @@ export type AddressItem = {
 };
 
 export const getAllAddressClientApi = (signal: AbortSignal) => {
-  return apiRequest.get('/api/address', { baseURL: '', signal }).fetchError().json<AddressItem[]>();
+  return apiRequest
+    .get('/api/address', { isRouteHandler: true, signal })
+    .fetchError(() => [])
+    .json<AddressItem[]>();
 };
-export const getMeServerApi = () => apiRequest.get('/api/v1/users/me').fetchError().json<User>();
+export const getMeServerApi = () => {
+  return apiRequest.get('/users/me').json<User>();
+};
 export const getMeExternalApi = (signal?: AbortSignal | null) => {
-  return apiRequest.get('/api/v1/users/me', { signal }).fetchError().json<User>();
+  return apiRequest.get('/users/me', { signal }).json<User>();
 };

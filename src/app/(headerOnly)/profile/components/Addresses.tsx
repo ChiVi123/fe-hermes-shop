@@ -4,7 +4,7 @@ import { CircleAlertIcon, PlusIcon } from 'lucide-react';
 import { Alert, AlertTitle } from '~/components/ui/alert';
 import { Button } from '~/components/ui/button';
 import { useFetch } from '~/hooks/fetch';
-import { isFetchError } from '~/lib/fetchClient';
+import { isHttpError } from '~/lib/fetchain';
 import { getAllAddressClientApi, getMeExternalApi } from '~/services/users';
 
 export default function Addresses() {
@@ -17,11 +17,11 @@ export default function Addresses() {
         <div className='text-2xl font-semibold'>Addresses</div>
         <Button variant='ghost' className='font-bold'>
           <PlusIcon />
-          Add for {isFetchError(user) || user?.email}
+          Add for {isHttpError(user) || user?.email}
         </Button>
       </div>
 
-      {isFetchError(result) && (
+      {isHttpError(result) && (
         <Alert>
           <CircleAlertIcon />
           <AlertTitle>No addresses added</AlertTitle>

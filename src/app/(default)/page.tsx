@@ -2,7 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '~/components/ui/carousel';
-import { isFetchError } from '~/lib/fetchClient';
+import { isHttpError } from '~/lib/fetchain';
 import { cn } from '~/lib/utils';
 import { getProductsFromServer } from '~/services/products';
 
@@ -27,7 +27,7 @@ const SLIDES = [
 export default async function Home() {
   const products = await getProductsFromServer();
 
-  if (isFetchError(products)) {
+  if (isHttpError(products)) {
     console.log(products.toJSON());
   }
 

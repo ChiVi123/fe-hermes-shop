@@ -13,10 +13,7 @@ type Product = {
 
 export const getProductsFromServer = () => {
   return apiRequest
-    .get('/api/v1/products', {
-      headers: { overwrite: 'header-value-2' },
-      query: { limit: 12, sort: '-createdAt' },
-    })
+    .get('/products', { query: { limit: 12, sort: '-createdAt' } })
     .fetchError(() => [])
     .json<Product[]>();
 };

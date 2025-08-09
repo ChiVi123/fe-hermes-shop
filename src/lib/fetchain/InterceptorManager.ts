@@ -1,4 +1,4 @@
-import { FulfilledHandler, InterceptorHandler, RejectedHandler } from '~/lib/fetchClient/types';
+import { FulfilledHandler, InterceptorHandler, RejectedHandler } from '~/lib/fetchain/types';
 
 export class InterceptorManager<T> {
   private _handlers: InterceptorHandler<T>[];

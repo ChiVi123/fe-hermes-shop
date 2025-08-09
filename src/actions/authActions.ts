@@ -4,16 +4,15 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import z from 'zod';
 import { cookieOptions, TokenName } from '~/constants';
-import { FetchError, HttpStatus, isFetchError } from '~/lib/fetchClient';
+import { HttpError, isHttpError } from '~/lib/fetchain';
 import { apiRequest } from '~/lib/requests';
 import { getVerifyEmailPath } from '~/lib/route';
 import {
   createServerInvalidResponse,
   createZodResponse,
   FieldErrors,
-  fromErrorToFieldErrors,
-  isFieldErrors,
   isNonNullable,
+  isObject,
   isString,
 } from '~/lib/utils';
 import {
@@ -40,25 +39,35 @@ export const loginAction: FormActionState<LoginResolver> = async (_, formData) =
     return createZodResponse(validatedFields, obj);
   }
 
-  const result = await apiRequest.post('/api/v1/auth/login', { data: validatedFields.data }).fetchError().json<User>();
+  const result = await apiRequest
+    .post('/auth/login', { data: validatedFields.data })
+    .forbidden((error) => {
+      let message = error.message;
+      let isInActivate = false;
+      const { body } = error;
+      if (isNonNullable(body) && isObject(body) && 'message' in body && isString(body.message)) {
+        message = body.message;
+        isInActivate = body.message.includes('Account is not active');
+      }
+      return { error: error.toJSON(), isInActivate, message, ...obj } as LoginResolver;
+    })
+    .fetchError((error) => {
+      let message = error.message;
+      const { body } = error;
+      if (isNonNullable(body) && isObject(body) && 'message' in body && isString(body.message)) {
+        message = body.message;
+      }
 
-  if (isFetchError(result)) {
-    let message = result.message;
-    let isInActivate = false;
-    const { data, status } = result;
-    if (isNonNullable(data) && isString(data.message)) {
-      message = data.message;
-      isInActivate = status === HttpStatus.FORBIDDEN && data.message.includes('Account is not active');
-    }
+      return { error: error.toJSON(), message, ...obj } as LoginResolver;
+    })
+    .json(async (user: User) => {
+      const cookieStore = await cookies();
+      cookieStore.set(TokenName.ACCESS_TOKEN, user.accessToken, cookieOptions);
+      cookieStore.set(TokenName.REFRESH_TOKEN, user.refreshToken, cookieOptions);
+      return { message: 'Login successfully', success: true, accessToken: user.accessToken, ...obj } as LoginResolver;
+    });
 
-    return { error: result.toJSON(), isInActivate, message, ...obj };
-  }
-
-  const cookieStore = await cookies();
-  cookieStore.set(TokenName.ACCESS_TOKEN, result.accessToken, cookieOptions);
-  cookieStore.set(TokenName.REFRESH_TOKEN, result.refreshToken, cookieOptions);
-
-  return { message: 'Login successfully', success: true, accessToken: result.accessToken, ...obj };
+  return result;
 };
 
 type RetryActiveValues = z.infer<typeof retryActiveFormSchema>;
@@ -72,18 +81,20 @@ export const retryActiveAction: FormActionState<RetryActiveResolver> = async (cu
   }
 
   const result = await apiRequest
-    .post('/api/v1/auth/retry-active', { data: validatedFields.data })
-    .unprocessableEntity((error) => fromErrorToFieldErrors<RetryActiveValues>(error))
-    .fetchError()
-    .json<{ _id: string } | RetryActiveResolver['fieldErrors']>();
+    .post('/auth/retry-active', { data: validatedFields.data })
+    .unprocessableEntity((error) => {
+      const fieldErrors = fromErrorToFieldErrors<RetryActiveValues>(error);
+      if (isHttpError(fieldErrors)) {
+        throw fieldErrors;
+      }
+      return createServerInvalidResponse(fieldErrors, obj);
+    })
+    .fetchError((error) => fromFetchErrorToActionError(error, obj))
+    .json((data: { _id: string }) => {
+      return { message: 'Send mail successfully', success: true, ...data, ...obj } as RetryActiveResolver;
+    });
 
-  if (isFetchError(result)) {
-    return fromFetchErrorToActionError(result, obj);
-  } else if (isFieldErrors(result)) {
-    return createServerInvalidResponse(result, obj);
-  }
-
-  return { message: 'Send mail successfully', success: true, ...result, ...obj };
+  return result;
 };
 
 type RegisterValues = z.infer<typeof registerFormSchema>;
@@ -105,18 +116,22 @@ export const registerAction: FormActionState<RegisterResolver> = async (_, formD
   const { confirmPassword, ...data } = validatedFields.data;
 
   const result = await apiRequest
-    .post('/api/v1/auth/register', { data })
-    .conflict((error) => fromErrorToFieldErrors<RegisterValues>(error))
-    .fetchError()
-    .json<{ _id: string } | FieldErrors<RegisterValues>>();
+    .post('/auth/register', { data })
+    .conflict((error) => {
+      const fieldErrors = fromErrorToFieldErrors<RegisterValues>(error);
+      if (isHttpError(fieldErrors)) {
+        throw fieldErrors;
+      }
+      return createServerInvalidResponse(fieldErrors, obj);
+    })
+    .fetchError((error) => fromFetchErrorToActionError(error, obj))
+    .json((data: { _id: string }) => data._id);
 
-  if (isFetchError(result)) {
-    return fromFetchErrorToActionError(result, obj);
-  } else if (isFieldErrors(result)) {
-    return createServerInvalidResponse(result, obj);
+  if (isString(result)) {
+    redirect(getVerifyEmailPath(result));
+  } else {
+    return result;
   }
-
-  redirect(getVerifyEmailPath(result._id));
 };
 
 type VerifyAccountValues = z.infer<typeof verifyAccountFormSchema>;
@@ -132,15 +147,11 @@ export const verifyAccountAction: FormActionState<VerifyAccountResolver> = async
   }
 
   const result = await apiRequest
-    .post('/api/v1/auth/verify', { data: validatedFields.data })
-    .fetchError()
-    .json<{ message: string }>();
+    .post('/auth/verify', { data: validatedFields.data })
+    .fetchError((error) => fromFetchErrorToActionError(error, obj))
+    .json((data: { message: string }) => ({ message: data.message, success: true, ...obj } as VerifyAccountResolver));
 
-  if (isFetchError(result)) {
-    return fromFetchErrorToActionError(result, obj);
-  }
-
-  return { message: result.message, success: true, ...obj };
+  return result;
 };
 
 type RetryPasswordValues = z.infer<typeof retryPasswordFormSchema>;
@@ -154,18 +165,20 @@ export const retryPasswordAction: FormActionState<RetryPasswordResolver> = async
   }
 
   const result = await apiRequest
-    .post('/api/v1/auth/retry-password', { data: validatedFields.data })
-    .unprocessableEntity((error) => fromErrorToFieldErrors<RetryPasswordValues>(error))
-    .fetchError()
-    .json<{ _id: string } | FieldErrors<RetryPasswordValues>>();
+    .post('/auth/retry-password', { data: validatedFields.data })
+    .unprocessableEntity((error) => {
+      const fieldErrors = fromErrorToFieldErrors<RetryPasswordValues>(error);
+      if (isHttpError(fieldErrors)) {
+        throw fieldErrors;
+      }
+      return createServerInvalidResponse(fieldErrors, obj);
+    })
+    .fetchError((error) => fromFetchErrorToActionError(error, obj))
+    .json((data: { _id: string }) => {
+      return { message: 'Send mail successfully', success: true, ...data, ...obj } as RetryPasswordResolver;
+    });
 
-  if (isFetchError(result)) {
-    return fromFetchErrorToActionError(result, obj);
-  } else if (isFieldErrors(result)) {
-    return createServerInvalidResponse(result, obj);
-  }
-
-  return { message: 'Send mail successfully', success: true, ...result, ...obj };
+  return result;
 };
 
 type ChangePasswordValues = z.infer<typeof changePasswordFormSchema>;
@@ -183,23 +196,31 @@ export const changePasswordAction: FormActionState<ChangePasswordResolver> = asy
   }
 
   const result = await apiRequest
-    .post('/api/v1/auth/change-password', { data: validatedFields.data })
-    .fetchError()
-    .json<{ message: string }>();
+    .post('/auth/change-password', { data: validatedFields.data })
+    .fetchError((error) => fromFetchErrorToActionError(error, obj))
+    .json((data: { message: string }) => ({ message: data.message, success: true, ...obj } as ChangePasswordResolver));
 
-  if (isFetchError(result)) {
-    return fromFetchErrorToActionError(result, obj);
-  }
-
-  return { message: result.message, success: true, ...obj };
+  return result;
 };
 
-const fromFetchErrorToActionError = <T>(error: FetchError, obj: T): FormActionResolver<T> => {
+const fromFetchErrorToActionError = <T>(error: HttpError, obj: T): FormActionResolver<T> => {
   let message = error.message;
-  const { data } = error;
-  if (isNonNullable(data) && isString(data.message)) {
-    message = data.message;
+  const { body } = error;
+  if (isNonNullable(body) && isObject(body) && 'message' in body && isString(body.message)) {
+    message = body.message;
   }
 
   return { error: error.toJSON(), message, ...obj };
+};
+const fromErrorToFieldErrors = <U, T extends HttpError = HttpError>(error: T): T | FieldErrors<U> => {
+  const { body } = error;
+  if (!isNonNullable(body) || !('message' in body) || !Array.isArray(body.message)) {
+    return error;
+  }
+
+  const fieldErrors = { isFieldErrors: true } as FieldErrors<U>;
+  body.message.forEach((current) => {
+    fieldErrors[current.property as keyof U] = current.constraints;
+  });
+  return fieldErrors;
 };
